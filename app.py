@@ -257,12 +257,12 @@ box-shadow:var(--shadow);color:var(--muted);font-size:.84rem;font-weight:550;whi
 .stApp .stTabs [data-baseweb="tab-panel"]{{padding-top:1.8rem}}
 
 /* ── buttons ── */
-.stApp [data-testid^="stBaseButton-secondary"],.stApp div.stButton>button,.stApp div.stDownloadButton>button{{border-radius:10px;font-weight:600;padding:.6rem 1.1rem;
+.stApp [data-testid^="stBaseButton-secondary"],.stApp div.stButton>button:not([kind="primary"]),.stApp div.stDownloadButton>button:not([kind="primary"]){{border-radius:10px;font-weight:600;padding:.6rem 1.1rem;
 background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .15s,border-color .2s,background .2s}}
 .stApp [data-testid^="stBaseButton-secondary"]:hover{{border-color:var(--accent);background:var(--raised)}}
-.stApp [data-testid^="stBaseButton-primary"]{{border-radius:10px;font-weight:650;padding:.6rem 1.1rem;background:var(--accent);border:1px solid var(--accent);
+.stApp [data-testid^="stBaseButton-primary"],.stApp div.stButton>button[kind="primary"],.stApp div.stDownloadButton>button[kind="primary"],.stApp div.stFormSubmitButton>button[kind="primary"]{{color:var(--accent-ink);border-radius:10px;font-weight:650;padding:.6rem 1.1rem;background:var(--accent);border:1px solid var(--accent);
 box-shadow:var(--shadow),0 8px 22px -10px var(--accent);transition:transform .15s,filter .2s}}
-.stApp [data-testid^="stBaseButton-primary"]:hover{{filter:brightness(1.08)}}
+.stApp [data-testid^="stBaseButton-primary"]:hover,.stApp [data-testid^="stBaseButton-primary"]:focus,.stApp [data-testid^="stBaseButton-primary"]:active,.stApp div.stButton>button[kind="primary"]:hover,.stApp div.stDownloadButton>button[kind="primary"]:hover{{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);filter:brightness(1.08)}}
 .stApp [data-testid^="stBaseButton"]:active{{transform:scale(.985)}}
 .stApp [data-testid^="stBaseButton-secondary"] p,.stApp [data-testid^="stBaseButton-secondary"] span{{color:var(--text)}}
 .stApp [data-testid^="stBaseButton-primary"] p,.stApp [data-testid^="stBaseButton-primary"] span{{color:var(--accent-ink)}}
