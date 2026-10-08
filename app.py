@@ -191,10 +191,10 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    st.caption("Hackathon Track: Open-Source AI Project")[cite: 2]
-    st.markdown("**Team:** Codex")[cite: 2]
-    st.markdown("**Model:** `gemma-4-26b-a4b-it`")[cite: 2]
-    st.markdown("**License:** Apache 2.0 Open-Weight")[cite: 2]
+    st.caption("Hackathon Track: Open-Source AI Project")
+    st.markdown("**Team:** Codex")
+    st.markdown("**Model:** `gemma-4-26b-a4b-it`")
+    st.markdown("**License:** Apache 2.0 Open-Weight")
     st.divider()
 
     if auto_detected_key:
@@ -333,7 +333,7 @@ with tab_scan:
 
     # Display analysis output if available
     if st.session_state.ai_analysis_result:
-        st.success("✅ Analysis Complete!")[cite: 8]
+        st.success("✅ Analysis Complete!")
         st.markdown(st.session_state.ai_analysis_result)
 
         st.divider()
