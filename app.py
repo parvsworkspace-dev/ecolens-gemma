@@ -1,5 +1,6 @@
 import streamlit as st
 from PIL import Image
+import os
 from google import genai
 from google.genai import types
 
@@ -23,10 +24,25 @@ st.set_page_config(
 )
 
 # ----------------- GLOBAL SESSION STATE -----------------
+if "camera_key" not in st.session_state:
+    st.session_state.camera_key = 0
+if "ai_analysis_result" not in st.session_state:
+    st.session_state.ai_analysis_result = None
 if "ai_scanned_item" not in st.session_state:
     st.session_state.ai_scanned_item = ""
 if "ai_scanned_category" not in st.session_state:
-    st.session_state.ai_scanned_category = "Furniture"
+    st.session_state.ai_scanned_category = "Other"
+
+# ----------------- AUTOMATIC API KEY DETECTION -----------------
+auto_detected_key = ""
+try:
+    if "GEMINI_API_KEY" in st.secrets:
+        auto_detected_key = st.secrets["GEMINI_API_KEY"]
+except Exception:
+    pass
+
+if not auto_detected_key:
+    auto_detected_key = os.environ.get("GEMINI_API_KEY", "")
 
 # ----------------- SIDEBAR CONFIGURATION -----------------
 with st.sidebar:
@@ -36,8 +52,25 @@ with st.sidebar:
     st.markdown("**Model:** `gemma-4-26b-a4b-it`")
     st.markdown("**License:** Apache 2.0 Open-Weight")
     st.divider()
-    api_key = st.text_input("Gemini API Key", type="password", placeholder="AIzaSy...")
-    st.caption("[Get API key from Google AI Studio](https://aistudio.google.com/)")
+
+    # If secret is detected, prefill it; otherwise prompt the user
+    if auto_detected_key:
+        api_key_input = st.text_input(
+            "Gemini API Key",
+            value=auto_detected_key,
+            type="password",
+            help="Pre-configured via Streamlit Secrets."
+        )
+        st.caption("🟢 API key automatically detected from secrets.")
+    else:
+        api_key_input = st.text_input(
+            "Gemini API Key",
+            type="password",
+            placeholder="AIzaSy..."
+        )
+        st.caption("[Get API key from Google AI Studio](https://aistudio.google.com/)")
+
+    api_key = api_key_input or auto_detected_key
 
 st.title("🌱 EcoLens: SecondLife Edition")
 st.caption("AI-Driven Waste Segregation & Community Circular Economy Pipeline")
@@ -51,7 +84,7 @@ tab_scan, tab_map, tab_give, tab_impact = st.tabs([
 ])
 
 # ==============================================================================
-# TAB 1: ECOLENS AI SCANNER (GEMMA 4 MULTIMODAL CLASSIFIER)
+# TAB 1: ECOLENS AI SCANNER (WITH RECAPTURE BUTTON)
 # ==============================================================================
 with tab_scan:
     st.subheader("Visual Waste & Usability Classification")
@@ -59,7 +92,16 @@ with tab_scan:
 
     col_cam, col_upload = st.columns(2)
     with col_cam:
-        img_camera = st.camera_input("Capture item with camera")
+        img_camera = st.camera_input(
+            "Capture item with camera", 
+            key=f"cam_{st.session_state.camera_key}"
+        )
+        if img_camera:
+            if st.button("🔄 Recapture Snapshot", use_container_width=True):
+                st.session_state.camera_key += 1
+                st.session_state.ai_analysis_result = None
+                st.rerun()
+
     with col_upload:
         img_upload = st.file_uploader("Or upload item image", type=["jpg", "jpeg", "png"])
 
@@ -69,7 +111,11 @@ with tab_scan:
         img = Image.open(active_image_file)
         st.image(img, caption="Captured Snapshot", width=340)
 
-        if st.button("🔍 Analyze with Gemma 4", type="primary", use_container_width=True):
+        col_btn1, col_btn2 = st.columns([1, 1])
+        with col_btn1:
+            run_analysis = st.button("🔍 Analyze with Gemma 4", type="primary", use_container_width=True)
+
+        if run_analysis:
             if not api_key:
                 st.error("Please enter your Gemini API Key in the sidebar to run inference.")
             else:
@@ -78,17 +124,18 @@ with tab_scan:
                         client = genai.Client(api_key=api_key)
                         
                         system_instruction = (
-                            "You are EcoLens, an expert circular economy and waste segregation AI assistant. "
-                            "Analyze the provided image of an object and output structured, actionable markdown containing:\n"
+                            "You are EcoLens, an expert circular economy AI assistant. "
+                            "Analyze the object in the image and output structured Markdown containing:\n"
                             "### Object Identified\n"
-                            "- **Item**: Exact name of item\n"
-                            "- **Primary Material**: Composition (e.g., Plastic PVC/PET, E-waste, Wood, Metal)\n\n"
+                            "- **Item**: Exact item name\n"
+                            "- **Primary Material**: Composition\n"
+                            "- **Recyclability Score**: Integer from 0 to 100\n\n"
                             "### Disposal Protocol\n"
                             "- **Category**: (Dry Waste / Wet Waste / Hazardous & E-Waste / Landfill / Reusable)\n"
-                            "- **Recommended Bin Color**: (Blue for dry, Green for wet, Red for e-waste/hazardous, Black for landfill)\n"
-                            "- **Disposal Action**: Specific steps to dispose safely or separate components\n\n"
+                            "- **Recommended Bin Color**: (Blue / Green / Red / Black)\n"
+                            "- **Disposal Action**: Concrete disposal or recycling instructions\n\n"
                             "### Upcycling & Reuse Idea\n"
-                            "- A practical way to repair, repurpose, or donate this item locally."
+                            "- A practical repurpose, repair, or donation pathway."
                         )
 
                         config = types.GenerateContentConfig(
@@ -96,10 +143,7 @@ with tab_scan:
                             thinking_config=types.ThinkingConfig(thinking_level="minimal")
                         )
 
-                        prompt = (
-                            "Analyze this item. Identify the object, materials, correct segregation bin/protocol, "
-                            "and suggest whether it can be reused, repaired, or donated."
-                        )
+                        prompt = "Classify this item for waste segregation, circular reusability, and material makeup."
 
                         response = client.models.generate_content(
                             model="gemma-4-26b-a4b-it",
@@ -107,29 +151,39 @@ with tab_scan:
                             config=config
                         )
 
-                        st.success("✅ Analysis Complete!")
-                        st.markdown(response.text)
+                        st.session_state.ai_analysis_result = response.text
 
-                        # Auto-extract item keywords for seamless pre-filling in Linz's tab
-                        resp_text_lower = response.text.lower()
-                        if "electronic" in resp_text_lower or "e-waste" in resp_text_lower:
+                        # Auto-sync category for Tab 3 and Tab 4
+                        resp_lower = response.text.lower()
+                        if "electronic" in resp_lower or "e-waste" in resp_lower:
                             st.session_state.ai_scanned_category = "Electronics"
-                        elif "plastic" in resp_text_lower:
+                        elif "plastic" in resp_lower:
                             st.session_state.ai_scanned_category = "Plastic"
-                        elif "metal" in resp_text_lower:
+                        elif "metal" in resp_lower:
                             st.session_state.ai_scanned_category = "Metal"
-                        elif "paper" in resp_text_lower or "book" in resp_text_lower or "cardboard" in resp_text_lower:
+                        elif "paper" in resp_lower or "cardboard" in resp_lower:
                             st.session_state.ai_scanned_category = "Paper / Books"
-                        elif "furniture" in resp_text_lower or "wood" in resp_text_lower:
+                        elif "furniture" in resp_lower or "wood" in resp_lower:
                             st.session_state.ai_scanned_category = "Furniture"
                         else:
                             st.session_state.ai_scanned_category = "Other"
 
                         st.session_state.ai_scanned_item = "Scanned Item"
-                        st.info("💡 Would you like to donate or list this item? Check out the **🎁 Give Away / Rehome** tab!")
 
                     except Exception as e:
                         st.error(f"Inference failed: {e}")
+
+    # Display analysis output if available
+    if st.session_state.ai_analysis_result:
+        st.success("✅ Analysis Complete!")
+        st.markdown(st.session_state.ai_analysis_result)
+
+        st.divider()
+        mcol1, mcol2 = st.columns(2)
+        with mcol1:
+            st.info(f"**Identified Stream:** `{st.session_state.ai_scanned_category}`")
+        with mcol2:
+            st.markdown("💡 *Ready to keep this in circulation?* Head to the **🎁 Give Away / Rehome** tab to list it!")
 
 # ==============================================================================
 # TAB 2: SECOND LIFE COMMUNITY MAP (SHARATH'S MODULE)
