@@ -56,6 +56,8 @@ CATEGORY_KEYWORDS = [
     (("metal", "steel", "aluminium", "aluminum"), "Metal"), (("paper", "cardboard", "book"), "Paper / Books"),
     (("furniture", "wood"), "Furniture"), (("cloth", "fabric", "textile"), "Clothing"),
 ]
+CAT_ICON = {"Electronics": "💻", "Plastic": "🧴", "Metal": "🥄", "Paper / Books": "📚",
+            "Furniture": "🪑", "Clothing": "🧥", "Other": "📦"}
 BIN_HEX = {"Blue": "#6ea8fe", "Green": "#7fc79a", "Red": "#ef8a8a", "Black": "#9aa4b2"}
 SYSTEM_PROMPT = (
     "You are EcoLens, an expert circular economy AI assistant. "
@@ -157,6 +159,10 @@ def apply_analysis(text: str) -> None:
     s.ai_scanned_item, s.ai_score, s.ai_bin, s.ai_error = p["item"], p["score"], p["bin"], None
 
 
+def set_theme(mode: str) -> None:
+    st.session_state.theme = mode
+
+
 def claim_listing(listing: dict) -> None:
     listing["claimed"] = True
 
@@ -165,10 +171,14 @@ def claim_listing(listing: dict) -> None:
 TOKENS = {
     "dark": dict(bg="#0c0f0e", surface="#141918", raised="#1a201f", line="#252d2b", text="#eef1ef",
                  muted="#8e9a96", accent="#a8c3ae", accent_ink="#0c1410", accent_soft="rgba(168,195,174,.12)",
-                 danger="#f09a9a", chart2="#6f8f7a"),
+                 danger="#f09a9a", chart2="#6f8f7a",
+                 shadow="0 1px 0 rgba(255,255,255,.04) inset,0 12px 30px -16px rgba(0,0,0,.7)",
+                 glow="rgba(168,195,174,.10)", dot="rgba(255,255,255,.05)"),
     "light": dict(bg="#f6f7f5", surface="#ffffff", raised="#f0f2ef", line="#dfe3df", text="#151a18",
                   muted="#5d6a65", accent="#3f5f4b", accent_ink="#ffffff", accent_soft="rgba(63,95,75,.09)",
-                  danger="#b4403f", chart2="#8aa595"),
+                  danger="#b4403f", chart2="#8aa595",
+                 shadow="0 1px 2px rgba(20,30,25,.05),0 14px 30px -18px rgba(30,50,40,.25)",
+                 glow="rgba(63,95,75,.09)", dot="rgba(30,60,45,.07)"),
 }
 
 
@@ -178,83 +188,127 @@ def inject_css(mode: str) -> None:
     st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
-:root{{{vars_css};--r:12px}}
+:root{{{vars_css};--r:14px;color-scheme:{mode}}}
 html,body,.stApp,p,label,li,input,textarea,button,h1,h2,h3,h4,[data-testid="stWidgetLabel"]{{font-family:'Instrument Sans',system-ui,sans-serif}}
-.stApp{{background:var(--bg);color:var(--text);font-variant-numeric:tabular-nums}}
+.stApp{{isolation:isolate;background:radial-gradient(1000px 520px at 10% -8%,var(--glow),transparent 65%),var(--bg);color:var(--text);font-variant-numeric:tabular-nums}}
+.stApp::before{{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:radial-gradient(var(--dot) 1px,transparent 1.3px);
+background-size:22px 22px;-webkit-mask-image:linear-gradient(180deg,#000,transparent 65%);mask-image:linear-gradient(180deg,#000,transparent 65%)}}
 .block-container{{max-width:1180px;padding:2.4rem 2rem 4rem}}
 #MainMenu,footer{{visibility:hidden}} header[data-testid="stHeader"]{{background:transparent}}
-h1,h2,h3,h4{{letter-spacing:-.02em;font-weight:650;color:var(--text)}}
-p,li{{line-height:1.65;color:var(--text)}}
-.muted{{color:var(--muted)}} a{{color:var(--accent)}}
+.stApp [data-testid="stSidebar"]{{background:var(--surface);border-right:1px solid var(--line)}}
 :focus-visible{{outline:2px solid var(--accent)!important;outline-offset:2px}}
 
-/* masthead */
-.mast{{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding-bottom:22px;margin-bottom:22px;border-bottom:1px solid var(--line)}}
-.mast h1{{font-size:2.35rem;margin:0;line-height:1.1}}
-.mast p{{margin:8px 0 0;color:var(--muted);max-width:560px}}
-.mast .meta{{color:var(--muted);font-size:.85rem;text-align:right;white-space:nowrap}}
-.live{{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px}}
+/* ── text colour: explicit so Streamlit's own theme can never leak through ── */
+.stApp h1,.stApp h2,.stApp h3,.stApp h4,.stApp h5,.stApp p,.stApp li,.stApp label,.stApp summary,
+.stApp [data-testid="stMarkdownContainer"],.stApp [data-testid="stMetricValue"],.stApp kbd{{color:var(--text)}}
+.stApp h1,.stApp h2,.stApp h3,.stApp h4{{letter-spacing:-.02em;font-weight:650}}
+.stApp p,.stApp li{{line-height:1.65}}
+.stApp [data-testid="stWidgetLabel"] p,.stApp [data-testid="stCaptionContainer"],.stApp [data-testid="stCaptionContainer"] *,
+.stApp [data-testid="stMetricLabel"] p,.stApp .muted,.stApp .mast p,.stApp .sub,.stApp .state p{{color:var(--muted)}}
+.stApp .state.err h4{{color:var(--danger)}}
+.stApp a{{color:var(--accent)}}
+.stApp code{{background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:2px 6px}}
+.stApp kbd{{background:var(--raised);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 6px;font-size:.78rem}}
+::selection{{background:var(--accent);color:var(--accent-ink)}}
+::-webkit-scrollbar{{width:10px;height:10px}}::-webkit-scrollbar-thumb{{background:var(--line);border-radius:10px;border:2px solid transparent;background-clip:padding-box}}
 
-/* surfaces */
-.card{{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px}}
+/* ── masthead & brand ── */
+.logo{{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;flex:none;background:var(--accent);color:var(--accent-ink);
+box-shadow:var(--shadow),0 0 0 4px var(--accent-soft)}}
+.logo.sm{{width:34px;height:34px;border-radius:10px}}
+.mast{{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding-bottom:24px;margin-bottom:24px;border-bottom:1px solid var(--line)}}
+.brandrow{{display:flex;align-items:center;gap:16px}}
+.stApp .mast h1{{font-size:2.4rem;margin:0;line-height:1.1}}
+.stApp .mast p{{margin:12px 0 0;max-width:560px}}
+.status{{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border:1px solid var(--line);border-radius:99px;background:var(--surface);
+box-shadow:var(--shadow);color:var(--muted);font-size:.84rem;font-weight:550;white-space:nowrap}}
+.live{{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;animation:ping 2.4s infinite}}
+@keyframes ping{{0%{{box-shadow:0 0 0 0 var(--accent-soft)}}70%{{box-shadow:0 0 0 8px transparent}}100%{{box-shadow:0 0 0 0 transparent}}}}
+.sbrand{{display:flex;align-items:center;gap:12px;padding:4px 0 6px}} .sbrand b{{display:block;font-size:1.05rem}}
+
+/* ── surfaces ── */
+.card{{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow)}}
 .card.tint{{background:var(--accent-soft);border-color:var(--accent)}}
-.listing{{margin-bottom:10px;transition:border-color .2s}} .listing:hover{{border-color:var(--accent)}}
-.listing b{{font-size:1rem}} .listing .sub{{color:var(--muted);font-size:.85rem;display:block;margin-top:2px}}
-
-/* tabs */
-.stTabs [data-baseweb="tab-list"]{{gap:4px;border-bottom:1px solid var(--line)}}
-.stTabs [data-baseweb="tab"]{{padding:10px 16px;color:var(--muted);font-weight:550;border-radius:8px 8px 0 0;transition:color .2s,background .2s}}
-.stTabs [data-baseweb="tab"]:hover{{color:var(--text);background:var(--raised)}}
-.stTabs [aria-selected="true"]{{color:var(--text)!important}}
-.stTabs [data-baseweb="tab-highlight"]{{background:var(--accent)!important;height:2px}}
-.stTabs [data-baseweb="tab-border"]{{display:none}}
-.stTabs [data-baseweb="tab-panel"]{{padding-top:1.6rem}}
-
-/* buttons */
-div.stButton>button,div.stFormSubmitButton>button,div.stDownloadButton>button{{border-radius:10px;font-weight:600;padding:.6rem 1.1rem;
-background:var(--surface);color:var(--text);border:1px solid var(--line);transition:transform .15s,border-color .2s,background .2s}}
-div.stButton>button:hover,div.stDownloadButton>button:hover{{border-color:var(--accent);background:var(--raised)}}
-div.stButton>button:active,div.stDownloadButton>button:active{{transform:scale(.985)}}
-div.stButton>button[kind="primary"],div.stFormSubmitButton>button[kind="primary"],div.stDownloadButton>button[kind="primary"]{{
-background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}}
-div.stButton>button[kind="primary"]:hover,div.stDownloadButton>button[kind="primary"]:hover{{filter:brightness(1.08);background:var(--accent)}}
-
-/* inputs */
-div[data-baseweb="input"],div[data-baseweb="select"]>div,div[data-baseweb="textarea"],.stTextArea textarea{{
-background:var(--surface)!important;border-color:var(--line)!important;border-radius:10px!important}}
-div[data-baseweb="input"]:focus-within,div[data-baseweb="select"]>div:focus-within,div[data-baseweb="textarea"]:focus-within{{
-border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--accent-soft)!important}}
-[data-testid="stWidgetLabel"] p{{color:var(--muted);font-weight:550;font-size:.85rem}}
-[data-testid="stFileUploaderDropzone"],[data-testid="stCameraInput"]>div{{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);transition:border-color .2s}}
-[data-testid="stFileUploaderDropzone"]:hover{{border-color:var(--accent)}}
-[data-testid="stImage"] img{{border-radius:var(--r);border:1px solid var(--line)}}
-[data-testid="stMetric"]{{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}}
-[data-testid="stMetricValue"]{{font-weight:650;letter-spacing:-.02em;color:var(--text)}}
-[data-testid="stMetricLabel"] p{{color:var(--muted)}}
-[data-testid="stExpander"],[data-testid="stForm"],[data-testid="stVerticalBlockBorderWrapper"]{{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}}
+.listing{{margin-bottom:10px;padding:14px 16px;transition:border-color .2s,transform .2s}}
+.listing:hover{{border-color:var(--accent);transform:translateY(-1px)}}
+.lh{{display:flex;align-items:center;gap:12px}} .lh b{{display:block;font-size:.98rem;line-height:1.25}}
+.badge{{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--raised);border:1px solid var(--line);flex:none}}
+.tag{{margin-left:auto;font-size:.74rem;font-weight:650;padding:3px 10px;border-radius:99px;background:var(--accent-soft);border:1px solid var(--line);color:var(--accent)}}
+.stApp .tag{{color:var(--accent)}} .note{{display:block;margin-top:8px}} .sub{{font-size:.85rem;display:block}}
+.stApp [data-testid="stMetric"]{{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);transition:border-color .2s}}
+.stApp [data-testid="stMetric"]:hover{{border-color:var(--accent)}}
+.stApp [data-testid="stMetricValue"]{{font-weight:650;letter-spacing:-.02em}}
+.stApp [data-testid="stExpander"],.stApp [data-testid="stForm"],.stApp [data-testid="stVerticalBlockBorderWrapper"]{{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}}
+.stApp [data-testid="stExpander"] summary:hover{{background:var(--raised)}}
+.stApp [data-testid="stAlert"]{{background:var(--accent-soft)!important;border:1px solid var(--line);border-radius:12px}}
+.stApp [data-testid="stAlert"] *{{color:var(--text)!important}}
+.stApp [data-testid="stImage"] img{{border-radius:var(--r);border:1px solid var(--line);box-shadow:var(--shadow)}}
 .stProgress>div>div>div>div{{background:var(--accent)}}
-hr{{border:none;height:1px;background:var(--line);margin:1.4rem 0}}
-section[data-testid="stSidebar"]{{background:var(--surface);border-right:1px solid var(--line)}}
-code{{background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:2px 6px}}
+.stApp hr{{border:none;height:1px;background:var(--line);margin:1.4rem 0}}
 
-/* bin chip */
+/* ── tabs: segmented pill ── */
+.stApp .stTabs [data-baseweb="tab-list"]{{display:flex;width:fit-content;max-width:100%;gap:2px;padding:4px;background:var(--raised);border:1px solid var(--line);border-radius:13px}}
+.stApp .stTabs [data-baseweb="tab"]{{height:auto;padding:8px 18px;border-radius:9px;background:transparent;transition:background .2s,box-shadow .2s}}
+.stApp .stTabs [data-baseweb="tab"] p{{color:var(--muted);font-weight:550;font-size:.92rem;transition:color .2s}}
+.stApp .stTabs [data-baseweb="tab"]:hover p{{color:var(--text)}}
+.stApp .stTabs [aria-selected="true"]{{background:var(--surface)!important;box-shadow:var(--shadow)}}
+.stApp .stTabs [aria-selected="true"] p{{color:var(--text)}}
+.stApp .stTabs [data-baseweb="tab-highlight"],.stApp .stTabs [data-baseweb="tab-border"]{{display:none!important}}
+.stApp .stTabs [data-baseweb="tab-panel"]{{padding-top:1.8rem}}
+
+/* ── buttons ── */
+.stApp [data-testid^="stBaseButton-secondary"],.stApp div.stButton>button,.stApp div.stDownloadButton>button{{border-radius:10px;font-weight:600;padding:.6rem 1.1rem;
+background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .15s,border-color .2s,background .2s}}
+.stApp [data-testid^="stBaseButton-secondary"]:hover{{border-color:var(--accent);background:var(--raised)}}
+.stApp [data-testid^="stBaseButton-primary"]{{border-radius:10px;font-weight:650;padding:.6rem 1.1rem;background:var(--accent);border:1px solid var(--accent);
+box-shadow:var(--shadow),0 8px 22px -10px var(--accent);transition:transform .15s,filter .2s}}
+.stApp [data-testid^="stBaseButton-primary"]:hover{{filter:brightness(1.08)}}
+.stApp [data-testid^="stBaseButton"]:active{{transform:scale(.985)}}
+.stApp [data-testid^="stBaseButton-secondary"] p,.stApp [data-testid^="stBaseButton-secondary"] span{{color:var(--text)}}
+.stApp [data-testid^="stBaseButton-primary"] p,.stApp [data-testid^="stBaseButton-primary"] span{{color:var(--accent-ink)}}
+
+/* ── inputs ── */
+.stApp [data-baseweb="input"],.stApp [data-baseweb="base-input"],.stApp [data-baseweb="textarea"],.stApp [data-baseweb="select"]>div{{
+background:var(--surface)!important;border-color:var(--line)!important;border-radius:10px!important}}
+.stApp input,.stApp textarea{{background:transparent!important;color:var(--text)!important;-webkit-text-fill-color:var(--text)!important;caret-color:var(--accent)}}
+.stApp input::placeholder,.stApp textarea::placeholder{{color:var(--muted)!important;-webkit-text-fill-color:var(--muted)!important}}
+.stApp [data-baseweb="select"] *{{color:var(--text)}}
+.stApp [data-baseweb="select"] svg,.stApp [data-baseweb="input"] svg{{fill:var(--muted);color:var(--muted)}}
+.stApp [data-baseweb="input"]:focus-within,.stApp [data-baseweb="select"]>div:focus-within,.stApp [data-baseweb="textarea"]:focus-within{{
+border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--accent-soft)!important}}
+.stApp [data-baseweb="tag"]{{background:var(--accent-soft)!important;border-radius:8px}} .stApp [data-baseweb="tag"] span{{color:var(--text)!important}}
+[data-baseweb="popover"]>div{{background:var(--surface)!important;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}}
+[data-baseweb="popover"] ul{{background:var(--surface)!important}}
+[data-baseweb="popover"] li{{color:var(--text)!important;background:transparent!important}}
+[data-baseweb="popover"] li:hover,[data-baseweb="popover"] li[aria-selected="true"]{{background:var(--accent-soft)!important}}
+.stApp [data-testid="stSlider"] [role="slider"]{{background:var(--accent)!important;box-shadow:0 0 0 4px var(--accent-soft)}}
+.stApp [data-testid="stSliderThumbValue"],.stApp [data-testid="stSlider"] [data-testid="stThumbValue"]{{color:var(--accent)!important}}
+.stApp [data-testid="stSliderTickBarMin"],.stApp [data-testid="stSliderTickBarMax"]{{color:var(--muted)}}
+
+/* ── uploader & camera ── */
+.stApp [data-testid="stFileUploaderDropzone"],.stApp [data-testid="stCameraInput"]>div{{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);transition:border-color .2s,background .2s}}
+.stApp [data-testid="stFileUploaderDropzone"]:hover{{border-color:var(--accent);background:var(--accent-soft)}}
+.stApp [data-testid="stFileUploaderDropzone"] *,.stApp [data-testid="stFileUploaderFile"] *{{color:var(--muted)}}
+.stApp [data-testid="stFileUploaderDropzone"] button *{{color:var(--text)}}
+
+/* ── chips, ring, states ── */
 .chip{{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:99px;border:1px solid var(--line);background:var(--raised);font-weight:600;font-size:.85rem}}
 .chip i{{width:10px;height:10px;border-radius:50%;display:inline-block}}
-
-/* score ring — the one expressive element */
 .ring{{display:flex;align-items:center;gap:22px}}
-.ring svg{{transform:rotate(-90deg)}}
-.ring circle.fg{{stroke-dasharray:var(--c) 999;stroke-dashoffset:0;animation:fill .9s cubic-bezier(.2,.8,.2,1) both}}
+.ring svg{{transform:rotate(-90deg);filter:drop-shadow(0 0 8px var(--accent-soft))}}
+.ring circle.fg{{stroke-dasharray:var(--c) 999;animation:fill .9s cubic-bezier(.2,.8,.2,1) both}}
 @keyframes fill{{from{{stroke-dasharray:0 999}}}}
-.ring .num{{font-size:2.4rem;font-weight:650;letter-spacing:-.03em;line-height:1}}
-
-/* states */
-.state{{text-align:center;padding:38px 24px}} .state .ico{{font-size:1.8rem}} .state h4{{margin:10px 0 4px}} .state p{{color:var(--muted);margin:0 auto;max-width:440px}}
-.state.err{{border-color:var(--danger)}} .state.err h4{{color:var(--danger)}}
+.ring .num{{font-size:2.5rem;font-weight:650;letter-spacing:-.03em;line-height:1}}
+.state{{text-align:center;padding:38px 24px}} .state .ico{{font-size:1.8rem}} .state h4{{margin:10px 0 4px}} .state p{{margin:0 auto;max-width:440px}}
+.state.err{{border-color:var(--danger)}}
+.steps{{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}}
+.step{{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);box-shadow:var(--shadow)}}
+.step .n{{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:none;font-size:.8rem;font-weight:700;background:var(--accent-soft);color:var(--accent);border:1px solid var(--line)}}
+.stApp .step .n{{color:var(--accent)}} .step b{{display:block;font-size:.92rem}}
 .sk{{border-radius:8px;background:linear-gradient(90deg,var(--raised) 25%,var(--line) 50%,var(--raised) 75%);background-size:200% 100%;animation:sk 1.4s linear infinite}}
 @keyframes sk{{to{{background-position:-200% 0}}}}
 @media(prefers-reduced-motion:reduce){{*{{animation:none!important;transition:none!important}}}}
-@media(max-width:700px){{.mast{{flex-direction:column;align-items:flex-start}}.mast h1{{font-size:1.8rem}}.mast .meta{{text-align:left}}}}
+@media(max-width:700px){{.mast{{flex-direction:column;align-items:flex-start}}.stApp .mast h1{{font-size:1.8rem}}.steps{{grid-template-columns:1fr}}}}
 </style>""", unsafe_allow_html=True)
 
 
@@ -291,18 +345,22 @@ def skeleton() -> str:
             '<div class="sk" style="height:84px;width:100%"></div></div>')
 
 
+def verdict(score: int) -> str:
+    return "Highly recyclable" if score >= 70 else "Partly recyclable" if score >= 40 else "Hard to recycle"
+
+
 def score_ring(score: int, bin_name: str | None) -> None:
     r, c = 44, 2 * 3.14159 * 44
     dash = c * score / 100
     chip = (f'<span class="chip"><i style="background:{BIN_HEX[bin_name]}"></i>{bin_name} bin</span>' if bin_name else "")
     st.markdown(
-        f'<div class="card ring" role="img" aria-label="Recyclability {score} out of 100">'
+        f'<div class="card ring" role="img" aria-label="Recyclability {score} out of 100, {verdict(score)}">'
         f'<svg width="108" height="108" viewBox="0 0 108 108" aria-hidden="true">'
         f'<circle cx="54" cy="54" r="{r}" fill="none" stroke="var(--line)" stroke-width="8"/>'
         f'<circle class="fg" cx="54" cy="54" r="{r}" fill="none" stroke="var(--accent)" stroke-width="8" '
         f'stroke-linecap="round" style="--c:{dash:.1f}"/></svg>'
         f'<div><div class="num">{score}<span class="muted" style="font-size:1rem;font-weight:500">/100</span></div>'
-        f'<div class="muted" style="margin:4px 0 10px">Recyclability</div>{chip}</div></div>',
+        f'<div class="muted" style="margin:4px 0 10px">{verdict(score)}</div>{chip}</div></div>',
         unsafe_allow_html=True)
 
 
@@ -322,13 +380,12 @@ def themed_bar(df: pd.DataFrame, x: str, y: str, color: str, y_title: str) -> No
 def sidebar() -> str:
     key = get_api_key()
     with st.sidebar:
-        st.markdown("### EcoLens")
-        st.caption("Autonomous circular economy assistant")
-        dark = st.toggle("Dark mode", value=st.session_state.theme == "dark", help="Switch between dark and light themes.")
-        new = "dark" if dark else "light"
-        if new != st.session_state.theme:
-            st.session_state.theme = new
-            st.rerun()
+        st.markdown(f'<div class="sbrand"><span class="logo sm" aria-hidden="true">{LEAF}</span><div><b>EcoLens</b>'
+                    '<span class="sub">Autonomous circular economy assistant</span></div></div>', unsafe_allow_html=True)
+        cl, cd = st.columns(2)
+        for col, mode, label in ((cl, "light", "☀️ Light"), (cd, "dark", "🌙 Dark")):
+            col.button(label, key=f"theme_{mode}", on_click=set_theme, args=(mode,), use_container_width=True,
+                       type="primary" if st.session_state.theme == mode else "secondary")
         st.divider()
         st.caption("Hackathon track: Open-Source AI Project")
         st.markdown(f"**Team** Codex  \n**Model** `{MODEL}`  \n**License** Apache 2.0 open-weight")
@@ -341,17 +398,30 @@ def sidebar() -> str:
         else:
             st.caption("[Get a key from Google AI Studio](https://aistudio.google.com/)")
         st.divider()
-        st.caption("Shortcuts: **1–4** switch tabs · **A** analyze")
+        st.markdown('<span class="sub">Shortcuts <kbd>1</kbd>–<kbd>4</kbd> tabs · <kbd>A</kbd> analyze</span>', unsafe_allow_html=True)
     return api_key
+
+
+LEAF = ('<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 4 13c0-6 6-9 16-9 0 10-3 16-9 16z"/>'
+        '<path d="M4 20c2-5 5-8 10-10"/></svg>')
 
 
 def masthead() -> None:
     st.markdown(
-        '<header class="mast"><div><h1>EcoLens: SecondLife Edition</h1>'
+        f'<header class="mast"><div><div class="brandrow"><span class="logo" aria-hidden="true">{LEAF}</span>'
+        '<h1>EcoLens: SecondLife Edition</h1></div>'
         '<p>Point a camera at anything you no longer need. Get disposal steps, a recyclability grade, '
         'and a neighbour who can take it.</p></div>'
-        '<div class="meta"><span class="live"></span>Gemma 4 vision · Bengaluru network</div></header>',
+        '<div class="status"><span class="live"></span>Gemma 4 vision · Bengaluru network</div></header>',
         unsafe_allow_html=True)
+
+
+def steps_strip() -> None:
+    items = [("Capture", "Take or upload a photo"), ("Analyze", "Get a grade and disposal steps"), ("Rehome", "List it for a neighbour")]
+    cells = "".join(f'<div class="step"><span class="n">{i}</span><div><b>{a}</b><span class="sub">{b}</span></div></div>'
+                    for i, (a, b) in enumerate(items, 1))
+    st.markdown(f'<div class="steps">{cells}</div>', unsafe_allow_html=True)
 
 
 def view_scanner(api_key: str) -> None:
@@ -377,6 +447,7 @@ def view_scanner(api_key: str) -> None:
         with result_slot.container():
             state_card("empty", "📷", "No item scanned yet",
                        "Upload a photo or open the camera. Results appear here in a few seconds.")
+            steps_strip()
         return
 
     if active:
@@ -441,9 +512,11 @@ def builtin_map() -> None:
         shown = [l for l in ls if not cat or l["category"] in cat]
         st.caption(f"{len(shown)} items available nearby")
         for i, l in enumerate(shown):
-            st.markdown(f'<div class="card listing"><b>{esc(l["item"])}</b>'
-                        f'<span class="sub">{esc(l["category"])} · {esc(l["condition"])} · {esc(l["area"])}</span>'
-                        f'<span class="sub">{esc(l["notes"])}</span></div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="card listing"><div class="lh"><span class="badge" aria-hidden="true">{CAT_ICON.get(l["category"], "📦")}</span>'
+                f'<div><b>{esc(l["item"])}</b><span class="sub">{esc(l["category"])} · {esc(l["area"])}</span></div>'
+                f'<span class="tag">{esc(l["condition"])}</span></div><span class="sub note">{esc(l["notes"])}</span></div>',
+                unsafe_allow_html=True)
             if st.button("Claim this item", key=f"claim_{i}_{l['item']}", use_container_width=True):
                 claim_listing(l)
                 st.rerun()
