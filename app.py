@@ -23,6 +23,142 @@ st.set_page_config(
     layout="wide"
 )
 
+# ----------------- INJECT CLEAN PREMIUM DESIGN SYSTEM -----------------
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Animated Ambient Gradient Header */
+    .hero-container {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.18) 50%, rgba(5, 150, 105, 0.06) 100%);
+        border: 1px solid rgba(52, 211, 153, 0.25);
+        border-radius: 18px;
+        padding: 28px 34px;
+        margin-bottom: 24px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-container::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -30%;
+        width: 320px;
+        height: 320px;
+        background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+        border-radius: 50%;
+        filter: blur(40px);
+        pointer-events: none;
+    }
+
+    .hero-title {
+        font-size: 2.25rem;
+        font-weight: 800;
+        background: linear-gradient(90deg, #34d399, #10b981, #6ee7b7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.03em;
+        margin-bottom: 6px;
+    }
+
+    .hero-subtitle {
+        font-size: 1.02rem;
+        color: #94a3b8;
+        font-weight: 500;
+        margin-bottom: 14px;
+    }
+
+    .badge-pill-container {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+    }
+
+    .badge-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(16, 185, 129, 0.12);
+        color: #6ee7b7;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        border: 1px solid rgba(52, 211, 153, 0.25);
+    }
+
+    .pulse-dot {
+        width: 7px;
+        height: 7px;
+        background-color: #10b981;
+        border-radius: 50%;
+        box-shadow: 0 0 0 rgba(16, 185, 129, 0.7);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Tab Custom Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 12px;
+        background-color: rgba(15, 23, 42, 0.6);
+        padding: 8px;
+        border-radius: 14px;
+        border: 1px solid rgba(51, 65, 85, 0.6);
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 10px;
+        padding: 8px 18px;
+        color: #94a3b8;
+        font-weight: 600;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background-color: rgba(16, 185, 129, 0.18) !important;
+        color: #34d399 !important;
+        border: 1px solid rgba(52, 211, 153, 0.35) !important;
+    }
+
+    /* Button Enhancements */
+    div.stButton > button {
+        border-radius: 12px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+
+    div.stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px -2px rgba(16, 185, 129, 0.35);
+        border-color: #34d399;
+    }
+
+    /* Sleek Sidebar Card */
+    .sidebar-brand-card {
+        background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+        border: 1px solid rgba(52, 211, 153, 0.2);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 18px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # ----------------- GLOBAL SESSION STATE -----------------
 if "camera_key" not in st.session_state:
     st.session_state.camera_key = 0
@@ -46,14 +182,21 @@ if not auto_detected_key:
 
 # ----------------- SIDEBAR CONFIGURATION -----------------
 with st.sidebar:
-    st.markdown("### 🌿 EcoLens")
-    st.caption("Hackathon Track: Open-Source AI Project")
-    st.markdown("**Team:** Codex")
-    st.markdown("**Model:** `gemma-4-26b-a4b-it`")
-    st.markdown("**License:** Apache 2.0 Open-Weight")
+    st.markdown("""
+    <div class="sidebar-brand-card">
+        <h3 style="margin:0 0 4px 0; color:#34d399; display:flex; align-items:center; gap:8px;">
+            🌿 EcoLens
+        </h3>
+        <p style="margin:0; font-size:0.8rem; color:#94a3b8;">Autonomous Circular Economy Assistant</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.caption("Hackathon Track: Open-Source AI Project")[cite: 2]
+    st.markdown("**Team:** Codex")[cite: 2]
+    st.markdown("**Model:** `gemma-4-26b-a4b-it`")[cite: 2]
+    st.markdown("**License:** Apache 2.0 Open-Weight")[cite: 2]
     st.divider()
 
-    # If secret is detected, prefill it; otherwise prompt the user
     if auto_detected_key:
         api_key_input = st.text_input(
             "Gemini API Key",
@@ -61,7 +204,11 @@ with st.sidebar:
             type="password",
             help="Pre-configured via Streamlit Secrets."
         )
-        st.caption("🟢 API key automatically detected from secrets.")
+        st.markdown("""
+        <div style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; color:#34d399; margin-top:4px;">
+            <span class="pulse-dot"></span> Secrets Engine Active
+        </div>
+        """, unsafe_allow_html=True)
     else:
         api_key_input = st.text_input(
             "Gemini API Key",
@@ -72,8 +219,19 @@ with st.sidebar:
 
     api_key = api_key_input or auto_detected_key
 
-st.title("🌱 EcoLens: SecondLife Edition")
-st.caption("AI-Driven Waste Segregation & Community Circular Economy Pipeline")
+# ----------------- HERO BANNER -----------------
+st.markdown("""
+<div class="hero-container">
+    <div class="hero-title">🌱 EcoLens: SecondLife Edition</div>
+    <div class="hero-subtitle">Open-Source AI Segregation & Localized Circular Economy Infrastructure</div>
+    <div class="badge-pill-container">
+        <span class="badge-pill"><span class="pulse-dot"></span> Gemma 4 Multimodal Vision</span>
+        <span class="badge-pill">⚡ Real-time Material Diagnostics</span>
+        <span class="badge-pill">📍 Geo-spatial Rehoming Network</span>
+        <span class="badge-pill">📉 Carbon Offset Ledger</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ----------------- TAB NAVIGATION -----------------
 tab_scan, tab_map, tab_give, tab_impact = st.tabs([
@@ -175,7 +333,7 @@ with tab_scan:
 
     # Display analysis output if available
     if st.session_state.ai_analysis_result:
-        st.success("✅ Analysis Complete!")
+        st.success("✅ Analysis Complete!")[cite: 8]
         st.markdown(st.session_state.ai_analysis_result)
 
         st.divider()
